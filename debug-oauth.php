@@ -34,10 +34,11 @@ echo "HTTP_X_FORWARDED_HOST: " . ($_SERVER['HTTP_X_FORWARDED_HOST'] ?? 'NOT SET'
 // Load credentials and check
 require_once 'config.php';
 
+use Google\Client;
+
 echo "=== GOOGLE CLIENT CONFIG ===\n\n";
 
 try {
-    use Google\Client;
     
     $client = new Client();
     $client->setAuthConfig(__DIR__ . '/credentials.json');
