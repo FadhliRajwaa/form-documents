@@ -6,7 +6,16 @@ use Google\Service\Drive;
 use Google\Service\Sheets;
 
 // Detect current URL for redirect URI
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+// Check X-Forwarded-Proto for reverse proxy (Render, Heroku, etc)
+$protocol = 'http';
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $protocol = 'https';
+} elseif (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    $protocol = 'https';
+} elseif (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https') {
+    $protocol = 'https';
+}
+
 $host = $_SERVER['HTTP_HOST'];
 $currentUrl = $protocol . '://' . $host . '/oauth.php';
 
