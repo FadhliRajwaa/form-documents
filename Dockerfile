@@ -40,5 +40,17 @@ RUN a2enmod rewrite
 # Expose port (Render will use $PORT)
 EXPOSE 80
 
-# Start Apache in foreground
-CMD ["apache2-foreground"]
+# Create startup script to handle credentials.json from environment
+RUN echo '#!/bin/bash\n\
+# Check if GOOGLE_CREDENTIALS_JSON env var exists and create file\n\
+if [ ! -z "$GOOGLE_CREDENTIALS_JSON" ]; then\n\
+    echo "$GOOGLE_CREDENTIALS_JSON" > /var/www/html/credentials.json\n\
+    echo "credentials.json created from environment variable"\n\
+fi\n\
+\n\
+# Start Apache\n\
+apache2-foreground\n\
+' > /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
+
+# Start Apache with startup script
+CMD ["/usr/local/bin/start.sh"]
