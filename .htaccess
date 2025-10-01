@@ -1,0 +1,39 @@
+# Enable RewriteEngine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /form-document/
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "^\.env|^credentials\.json|^composer\.(json|lock)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Set cache headers for static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+</IfModule>
+
+# PHP settings
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>

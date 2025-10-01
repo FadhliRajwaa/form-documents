@@ -1,0 +1,9 @@
+/vendor/
+/.env
+/uploads/*
+!/uploads/.gitkeep
+/credentials.json
+/token.json
+composer.lock
+.DS_Store
+Thumbs.db
