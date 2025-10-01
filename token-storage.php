@@ -6,22 +6,39 @@
 
 class TokenStorage {
     private $pdo;
+    private $useDatabase = true;
+    private $fileStoragePath;
     
     public function __construct() {
-        $this->connect();
-        $this->createTableIfNotExists();
+        $this->fileStoragePath = __DIR__ . '/token.json';
+        
+        // Check if DATABASE_URL is available
+        if (getenv('DATABASE_URL')) {
+            try {
+                $this->connect();
+                $this->createTableIfNotExists();
+            } catch (Exception $e) {
+                // Fallback to file-based storage
+                error_log("Database connection failed, using file storage: " . $e->getMessage());
+                $this->useDatabase = false;
+            }
+        } else {
+            // Use file-based storage for local development
+            $this->useDatabase = false;
+        }
     }
     
     /**
      * Connect ke PostgreSQL
      */
     private function connect() {
+        $databaseUrl = getenv('DATABASE_URL');
+        
+        if (!$databaseUrl) {
+            throw new Exception('DATABASE_URL environment variable not set');
+        }
+        
         try {
-            $databaseUrl = getenv('DATABASE_URL');
-            
-            if (!$databaseUrl) {
-                throw new Exception('DATABASE_URL environment variable not set');
-            }
             
             // Parse DATABASE_URL
             // Format: postgresql://user:password@host:port/dbname
@@ -69,9 +86,20 @@ class TokenStorage {
     }
     
     /**
-     * Save token ke database
+     * Save token (database atau file)
      */
     public function saveToken($tokenKey, $tokenData) {
+        if ($this->useDatabase) {
+            return $this->saveToDatabase($tokenKey, $tokenData);
+        } else {
+            return $this->saveToFile($tokenData);
+        }
+    }
+    
+    /**
+     * Save token ke database
+     */
+    private function saveToDatabase($tokenKey, $tokenData) {
         $sql = "
             INSERT INTO oauth_tokens (token_key, token_data, updated_at)
             VALUES (:key, :data, CURRENT_TIMESTAMP)
@@ -89,15 +117,43 @@ class TokenStorage {
             ]);
             return true;
         } catch (Exception $e) {
-            error_log("Save token error: " . $e->getMessage());
+            error_log("Save token to database error: " . $e->getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Save token ke file (fallback untuk local)
+     */
+    private function saveToFile($tokenData) {
+        try {
+            $dir = dirname($this->fileStoragePath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0700, true);
+            }
+            file_put_contents($this->fileStoragePath, $tokenData);
+            return true;
+        } catch (Exception $e) {
+            error_log("Save token to file error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Load token (database atau file)
+     */
+    public function loadToken($tokenKey) {
+        if ($this->useDatabase) {
+            return $this->loadFromDatabase($tokenKey);
+        } else {
+            return $this->loadFromFile();
         }
     }
     
     /**
      * Load token dari database
      */
-    public function loadToken($tokenKey) {
+    private function loadFromDatabase($tokenKey) {
         $sql = "SELECT token_data FROM oauth_tokens WHERE token_key = :key";
         
         try {
@@ -107,7 +163,22 @@ class TokenStorage {
             
             return $result ? $result['token_data'] : null;
         } catch (Exception $e) {
-            error_log("Load token error: " . $e->getMessage());
+            error_log("Load token from database error: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Load token dari file (fallback untuk local)
+     */
+    private function loadFromFile() {
+        try {
+            if (file_exists($this->fileStoragePath)) {
+                return file_get_contents($this->fileStoragePath);
+            }
+            return null;
+        } catch (Exception $e) {
+            error_log("Load token from file error: " . $e->getMessage());
             return null;
         }
     }
@@ -123,6 +194,17 @@ class TokenStorage {
      * Delete token
      */
     public function deleteToken($tokenKey) {
+        if ($this->useDatabase) {
+            return $this->deleteFromDatabase($tokenKey);
+        } else {
+            return $this->deleteFromFile();
+        }
+    }
+    
+    /**
+     * Delete token dari database
+     */
+    private function deleteFromDatabase($tokenKey) {
         $sql = "DELETE FROM oauth_tokens WHERE token_key = :key";
         
         try {
@@ -130,7 +212,22 @@ class TokenStorage {
             $stmt->execute(['key' => $tokenKey]);
             return true;
         } catch (Exception $e) {
-            error_log("Delete token error: " . $e->getMessage());
+            error_log("Delete token from database error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Delete token dari file
+     */
+    private function deleteFromFile() {
+        try {
+            if (file_exists($this->fileStoragePath)) {
+                unlink($this->fileStoragePath);
+            }
+            return true;
+        } catch (Exception $e) {
+            error_log("Delete token from file error: " . $e->getMessage());
             return false;
         }
     }
