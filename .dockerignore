@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+
+# Sensitive files
+credentials.json
+token.json
+
+# Dependencies (will be installed in container)
+vendor/
+
+# Logs
+*.log
+
+# Uploads (will be created in container)
+uploads/*
+!uploads/.gitkeep
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~
