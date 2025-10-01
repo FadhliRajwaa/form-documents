@@ -27,21 +27,27 @@ class GoogleDriveService {
         $client->setAccessType('offline');
         $client->setPrompt('consent');
         
-        // Load token if exists
-        $tokenPath = BASE_PATH . '/token.json';
-        if (file_exists($tokenPath)) {
-            $accessToken = json_decode(file_get_contents($tokenPath), true);
-            $client->setAccessToken($accessToken);
-        }
+        // Load token from database
+        require_once BASE_PATH . '/token-storage.php';
+        $tokenStorage = new \TokenStorage();
+        $tokenKey = 'google_oauth_token';
         
-        // Refresh token if expired
-        if ($client->isAccessTokenExpired()) {
-            if ($client->getRefreshToken()) {
-                $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                file_put_contents($tokenPath, json_encode($client->getAccessToken()));
-            } else {
-                throw new \Exception('Token expired. Please re-authorize at: oauth.php');
+        if ($tokenStorage->hasToken($tokenKey)) {
+            $tokenData = $tokenStorage->loadToken($tokenKey);
+            $accessToken = json_decode($tokenData, true);
+            $client->setAccessToken($accessToken);
+            
+            // Refresh token if expired
+            if ($client->isAccessTokenExpired()) {
+                if ($client->getRefreshToken()) {
+                    $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                    $tokenStorage->saveToken($tokenKey, json_encode($newToken));
+                } else {
+                    throw new \Exception('Token expired. Please re-authorize at: oauth.php');
+                }
             }
+        } else {
+            throw new \Exception('No token found. Please authorize first at: oauth.php');
         }
         
         return $client;

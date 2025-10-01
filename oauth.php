@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'token-storage.php';
 
 use Google\Client;
 use Google\Service\Drive;
@@ -30,7 +31,9 @@ $client->setAccessType('offline');
 $client->setPrompt('consent');
 $client->setRedirectUri($currentUrl);
 
-$tokenPath = BASE_PATH . '/token.json';
+// Initialize token storage
+$tokenStorage = new TokenStorage();
+$tokenKey = 'google_oauth_token'; // Fixed key untuk aplikasi ini
 
 // Handle OAuth callback
 if (isset($_GET['code'])) {
@@ -41,11 +44,8 @@ if (isset($_GET['code'])) {
             throw new Exception('Error fetching token: ' . $token['error']);
         }
         
-        // Save token
-        if (!file_exists(dirname($tokenPath))) {
-            mkdir(dirname($tokenPath), 0700, true);
-        }
-        file_put_contents($tokenPath, json_encode($token));
+        // Save token ke database
+        $tokenStorage->saveToken($tokenKey, json_encode($token));
         
         echo '<!DOCTYPE html>
 <html lang="id">
@@ -103,10 +103,20 @@ if (isset($_GET['code'])) {
 }
 
 // Check if token exists and valid
-if (file_exists($tokenPath)) {
-    $accessToken = json_decode(file_get_contents($tokenPath), true);
+if ($tokenStorage->hasToken($tokenKey)) {
+    $tokenData = $tokenStorage->loadToken($tokenKey);
+    $accessToken = json_decode($tokenData, true);
     $client->setAccessToken($accessToken);
     
+    // Jika token expired, refresh token
+    if ($client->isAccessTokenExpired()) {
+        if ($client->getRefreshToken()) {
+            $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+            $tokenStorage->saveToken($tokenKey, json_encode($newToken));
+        }
+    }
+    
+    // Jika masih valid atau sudah di-refresh, redirect ke index
     if (!$client->isAccessTokenExpired()) {
         header('Location: index.php');
         exit;
