@@ -18,7 +18,10 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
 }
 
 $host = $_SERVER['HTTP_HOST'];
-$currentUrl = $protocol . '://' . $host . '/oauth.php';
+
+// Get current script path dynamically
+$scriptName = $_SERVER['SCRIPT_NAME']; // e.g., /form-document/oauth.php
+$currentUrl = $protocol . '://' . $host . $scriptName;
 
 $client = new Client();
 $client->setApplicationName(APP_NAME);
