@@ -51,38 +51,8 @@ if (isset($_GET['code']) && !isset($_GET['processed'])) {
             throw new Exception('Failed to save token to storage');
         }
         
-        // Show success page (don't redirect to prevent loop)
-        ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAuth Berhasil</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-    <div class="container">
-        <div class="form-wrapper" style="text-align: center;">
-            <div class="modal-icon success">
-                <i class="fas fa-check-circle" style="font-size: 64px; color: #28a745;"></i>
-            </div>
-            <h2>✅ Autentikasi Berhasil!</h2>
-            <p>Aplikasi sudah terhubung dengan Google Account Anda.</p>
-            <p>Token telah disimpan dan siap digunakan.</p>
-            <a href="index.php" class="btn btn-primary" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-                <i class="fas fa-home"></i> Kembali ke Form
-            </a>
-            <br>
-            <a href="check-config.php" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
-                <i class="fas fa-check"></i> Check Config
-            </a>
-        </div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-</body>
-</html>
-<?php
+        // Redirect to index.php with success flag
+        header('Location: index.php?oauth_success=1');
         exit;
         
     } catch (Exception $e) {
@@ -167,23 +137,19 @@ $authUrl = $client->createAuthUrl();
                 <i class="fab fa-google"></i>
             </div>
             <?php if ($hasValidToken): ?>
+                <script>
+                    // Auto redirect ke index jika token sudah valid
+                    window.location.href = 'index.php?already_authenticated=1';
+                </script>
                 <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 4px; margin: 20px 0;">
                     <h2 style="color: #155724; margin-top: 0;">
                         <i class="fas fa-check-circle"></i> Token Sudah Valid!
                     </h2>
-                    <p style="color: #155724;">Aplikasi sudah terhubung dengan Google Account Anda.</p>
-                    <a href="index.php" class="btn btn-primary" style="display: inline-block; margin-top: 15px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-                        <i class="fas fa-home"></i> Kembali ke Form
-                    </a>
-                    <br>
-                    <a href="check-config.php" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
-                        <i class="fas fa-check"></i> Check Config
+                    <p style="color: #155724;">Redirecting...</p>
+                    <a href="index.php" style="display: inline-block; margin-top: 15px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                        Klik di sini jika tidak auto-redirect
                     </a>
                 </div>
-                <hr style="margin: 30px 0;">
-                <p style="color: var(--text-light); font-size: 14px;">
-                    Atau login ulang jika ingin menggunakan akun lain:
-                </p>
             <?php else: ?>
                 <h1>Autentikasi Google Diperlukan</h1>
                 <p style="margin: 20px 0; color: var(--text-light);">
