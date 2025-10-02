@@ -1,9 +1,30 @@
 <?php 
 require_once 'config.php';
+require_once 'token-storage.php';
 
-// Check if token exists, redirect to OAuth if not
+// Check if token exists (file atau database), redirect to OAuth if not
+$hasToken = false;
+
+// Check file-based token (local)
 $tokenPath = BASE_PATH . '/token.json';
-if (!file_exists($tokenPath)) {
+if (file_exists($tokenPath)) {
+    $hasToken = true;
+}
+// Check database token (production)
+elseif (getenv('DATABASE_URL')) {
+    try {
+        $tokenStorage = new TokenStorage();
+        if ($tokenStorage->hasToken('google_oauth_token')) {
+            $hasToken = true;
+        }
+    } catch (Exception $e) {
+        // Database error, continue to redirect
+        error_log("Token check error: " . $e->getMessage());
+    }
+}
+
+// Redirect to OAuth if no token found
+if (!$hasToken) {
     header('Location: oauth.php');
     exit;
 }
