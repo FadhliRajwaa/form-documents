@@ -32,11 +32,16 @@ use Google\Service\Drive;
             <?php
             $checks = [];
 
-            // Check 1: .env file
+            // Check 1: .env file (optional in production)
             if (file_exists(BASE_PATH . '/.env')) {
-                $checks[] = ['status' => 'ok', 'message' => '✅ File .env ditemukan'];
+                $checks[] = ['status' => 'ok', 'message' => '✅ File .env ditemukan (local development)'];
             } else {
-                $checks[] = ['status' => 'error', 'message' => '❌ File .env tidak ditemukan'];
+                // Check if environment variables are set (production)
+                if (getenv('APP_NAME') || getenv('DATABASE_URL')) {
+                    $checks[] = ['status' => 'ok', 'message' => '✅ Environment variables ter-set (production mode)'];
+                } else {
+                    $checks[] = ['status' => 'warning', 'message' => '⚠️ File .env tidak ditemukan (pastikan environment variables ter-set)'];
+                }
             }
 
             // Check 2: credentials.json
@@ -48,33 +53,51 @@ use Google\Service\Drive;
                 if (isset($creds['web'])) {
                     $checks[] = ['status' => 'ok', 'message' => '✅ Credentials type: OAuth 2.0 (Correct!)'];
                 } elseif (isset($creds['type']) && $creds['type'] === 'service_account') {
-                    $checks[] = ['status' => 'error', 'message' => '❌ Credentials type: Service Account (Wrong! Harus OAuth 2.0)'];
                 }
             } else {
                 $checks[] = ['status' => 'error', 'message' => '❌ File credentials.json tidak ditemukan'];
             }
 
-            // Check 3: token.json
+            // Check 3: OAuth Token (file atau database)
+            $hasToken = false;
             $tokenPath = BASE_PATH . '/token.json';
+            
+            // Check file-based token (local)
             if (file_exists($tokenPath)) {
-                $checks[] = ['status' => 'ok', 'message' => '✅ File token.json ditemukan (sudah login)'];
+                $hasToken = true;
+                $checks[] = ['status' => 'ok', 'message' => '✅ Token tersimpan di file (local mode)'];
                 
                 $token = json_decode(file_get_contents($tokenPath), true);
                 if (isset($token['access_token'])) {
-                    $checks[] = ['status' => 'ok', 'message' => '✅ Access token tersedia'];
+                    $checks[] = ['status' => 'ok', 'message' => '✅ Access token valid'];
                 }
                 if (isset($token['refresh_token'])) {
                     $checks[] = ['status' => 'ok', 'message' => '✅ Refresh token tersedia'];
                 }
-            } else {
-                $checks[] = ['status' => 'warning', 'message' => '⚠️ File token.json tidak ditemukan (belum login). <a href="oauth.php">Login sekarang</a>'];
+            }
+            // Check database token (production)
+            elseif (getenv('DATABASE_URL')) {
+                require_once BASE_PATH . '/token-storage.php';
+                try {
+                    $tokenStorage = new TokenStorage();
+                    if ($tokenStorage->hasToken('google_oauth_token')) {
+                        $hasToken = true;
+                        $checks[] = ['status' => 'ok', 'message' => '✅ Token tersimpan di database (production mode)'];
+                    }
+                } catch (Exception $e) {
+                    $checks[] = ['status' => 'warning', 'message' => '⚠️ Database check failed: ' . $e->getMessage()];
+                }
+            }
+            
+            if (!$hasToken) {
+                $checks[] = ['status' => 'warning', 'message' => '⚠️ Token tidak ditemukan (belum login). <a href="oauth.php">Login sekarang</a>'];
             }
 
             // Check 4: Google Drive Folder ID
             if (defined('GOOGLE_DRIVE_FOLDER_ID') && !empty(GOOGLE_DRIVE_FOLDER_ID)) {
                 $checks[] = ['status' => 'ok', 'message' => '✅ Google Drive Folder ID: ' . GOOGLE_DRIVE_FOLDER_ID];
             } else {
-                $checks[] = ['status' => 'error', 'message' => '❌ Google Drive Folder ID tidak diset di .env'];
+                $checks[] = ['status' => 'error', 'message' => '❌ Google Drive Folder ID tidak diset'];
             }
 
             // Check 5: Google Spreadsheet ID

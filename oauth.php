@@ -70,8 +70,12 @@ if (isset($_GET['code']) && !isset($_GET['processed'])) {
             <h2>✅ Autentikasi Berhasil!</h2>
             <p>Aplikasi sudah terhubung dengan Google Account Anda.</p>
             <p>Token telah disimpan dan siap digunakan.</p>
-            <a href="index.php" class="btn btn-primary" style="margin-top: 20px;">
+            <a href="index.php" class="btn btn-primary" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
                 <i class="fas fa-home"></i> Kembali ke Form
+            </a>
+            <br>
+            <a href="check-config.php" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
+                <i class="fas fa-check"></i> Check Config
             </a>
         </div>
     </div>
@@ -168,8 +172,12 @@ $authUrl = $client->createAuthUrl();
                         <i class="fas fa-check-circle"></i> Token Sudah Valid!
                     </h2>
                     <p style="color: #155724;">Aplikasi sudah terhubung dengan Google Account Anda.</p>
-                    <a href="index.php" class="btn btn-primary" style="margin-top: 15px;">
+                    <a href="index.php" class="btn btn-primary" style="display: inline-block; margin-top: 15px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
                         <i class="fas fa-home"></i> Kembali ke Form
+                    </a>
+                    <br>
+                    <a href="check-config.php" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
+                        <i class="fas fa-check"></i> Check Config
                     </a>
                 </div>
                 <hr style="margin: 30px 0;">
