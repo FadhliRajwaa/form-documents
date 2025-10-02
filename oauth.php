@@ -36,7 +36,7 @@ $tokenStorage = new TokenStorage();
 $tokenKey = 'google_oauth_token'; // Fixed key untuk aplikasi ini
 
 // Handle OAuth callback
-if (isset($_GET['code'])) {
+if (isset($_GET['code']) && !isset($_GET['processed'])) {
     try {
         $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
         
@@ -51,8 +51,34 @@ if (isset($_GET['code'])) {
             throw new Exception('Failed to save token to storage');
         }
         
-        // Redirect to index with success message
-        header('Location: index.php?oauth=success');
+        // Show success page (don't redirect to prevent loop)
+        ?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Berhasil</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-wrapper" style="text-align: center;">
+            <div class="modal-icon success">
+                <i class="fas fa-check-circle" style="font-size: 64px; color: #28a745;"></i>
+            </div>
+            <h2>✅ Autentikasi Berhasil!</h2>
+            <p>Aplikasi sudah terhubung dengan Google Account Anda.</p>
+            <p>Token telah disimpan dan siap digunakan.</p>
+            <a href="index.php" class="btn btn-primary" style="margin-top: 20px;">
+                <i class="fas fa-home"></i> Kembali ke Form
+            </a>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>
+<?php
         exit;
         
     } catch (Exception $e) {
@@ -84,7 +110,8 @@ if (isset($_GET['code'])) {
     exit;
 }
 
-// Check if token exists and valid
+// Check if token exists and valid (untuk show info, tidak auto-redirect)
+$hasValidToken = false;
 if ($tokenStorage->hasToken($tokenKey)) {
     $tokenData = $tokenStorage->loadToken($tokenKey);
     
@@ -95,7 +122,7 @@ if ($tokenStorage->hasToken($tokenKey)) {
             try {
                 $client->setAccessToken($accessToken);
                 
-                // Jika token expired, refresh token
+                // Jika token expired, coba refresh
                 if ($client->isAccessTokenExpired()) {
                     if ($client->getRefreshToken()) {
                         $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
@@ -106,13 +133,11 @@ if ($tokenStorage->hasToken($tokenKey)) {
                     }
                 }
                 
-                // Jika masih valid atau sudah di-refresh, redirect ke index
+                // Check apakah valid
                 if (!$client->isAccessTokenExpired()) {
-                    header('Location: index.php');
-                    exit;
+                    $hasValidToken = true;
                 }
             } catch (Exception $e) {
-                // Token invalid, continue to show auth page
                 error_log("Token validation error: " . $e->getMessage());
             }
         }
@@ -137,11 +162,27 @@ $authUrl = $client->createAuthUrl();
             <div style="font-size: 64px; color: var(--primary-color); margin-bottom: 20px;">
                 <i class="fab fa-google"></i>
             </div>
-            <h1>Autentikasi Google Diperlukan</h1>
-            <p style="margin: 20px 0; color: var(--text-light);">
-                Aplikasi memerlukan akses ke Google Drive dan Google Sheets Anda<br>
-                untuk menyimpan dokumen dan data.
-            </p>
+            <?php if ($hasValidToken): ?>
+                <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 20px; border-radius: 4px; margin: 20px 0;">
+                    <h2 style="color: #155724; margin-top: 0;">
+                        <i class="fas fa-check-circle"></i> Token Sudah Valid!
+                    </h2>
+                    <p style="color: #155724;">Aplikasi sudah terhubung dengan Google Account Anda.</p>
+                    <a href="index.php" class="btn btn-primary" style="margin-top: 15px;">
+                        <i class="fas fa-home"></i> Kembali ke Form
+                    </a>
+                </div>
+                <hr style="margin: 30px 0;">
+                <p style="color: var(--text-light); font-size: 14px;">
+                    Atau login ulang jika ingin menggunakan akun lain:
+                </p>
+            <?php else: ?>
+                <h1>Autentikasi Google Diperlukan</h1>
+                <p style="margin: 20px 0; color: var(--text-light);">
+                    Aplikasi memerlukan akses ke Google Drive dan Google Sheets Anda<br>
+                    untuk menyimpan dokumen dan data.
+                </p>
+            <?php endif; ?>
             
             <div style="background: var(--bg-light); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
                 <h3 style="margin-top: 0; color: var(--text-dark);">
