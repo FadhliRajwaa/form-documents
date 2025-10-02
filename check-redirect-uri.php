@@ -21,8 +21,15 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROT
 $host = $_SERVER['HTTP_HOST'];
 
 // Get dynamic path (remove current script and add oauth.php)
-$scriptDir = dirname($_SERVER['SCRIPT_NAME']); // e.g., /form-document
-$oauthPath = $scriptDir . '/oauth.php';
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']); // e.g., /form-document or /
+
+// Handle root directory case (avoid double slash)
+if ($scriptDir === '/' || $scriptDir === '\\') {
+    $oauthPath = '/oauth.php';
+} else {
+    $oauthPath = $scriptDir . '/oauth.php';
+}
+
 $currentUrl = $protocol . '://' . $host . $oauthPath;
 
 echo "Detected Redirect URI:\n";
