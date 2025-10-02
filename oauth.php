@@ -45,33 +45,15 @@ if (isset($_GET['code'])) {
         }
         
         // Save token ke database
-        $tokenStorage->saveToken($tokenKey, json_encode($token));
+        $saved = $tokenStorage->saveToken($tokenKey, json_encode($token));
         
-        echo '<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAuth Berhasil</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-    <div class="container">
-        <div class="form-wrapper" style="text-align: center;">
-            <div class="modal-icon success">
-                <i class="fas fa-check-circle" style="font-size: 64px; color: var(--success-color);"></i>
-            </div>
-            <h2>Autentikasi Berhasil!</h2>
-            <p>Aplikasi sudah terhubung dengan Google Account Anda.</p>
-            <p>Token telah disimpan dan akan digunakan untuk upload dokumen.</p>
-            <a href="index.php" class="btn btn-primary" style="margin-top: 20px;">
-                <i class="fas fa-home"></i> Kembali ke Form
-            </a>
-        </div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-</body>
-</html>';
+        if (!$saved) {
+            throw new Exception('Failed to save token to storage');
+        }
+        
+        // Redirect to index with success message
+        header('Location: index.php?oauth=success');
+        exit;
         
     } catch (Exception $e) {
         echo '<!DOCTYPE html>
@@ -105,21 +87,35 @@ if (isset($_GET['code'])) {
 // Check if token exists and valid
 if ($tokenStorage->hasToken($tokenKey)) {
     $tokenData = $tokenStorage->loadToken($tokenKey);
-    $accessToken = json_decode($tokenData, true);
-    $client->setAccessToken($accessToken);
     
-    // Jika token expired, refresh token
-    if ($client->isAccessTokenExpired()) {
-        if ($client->getRefreshToken()) {
-            $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-            $tokenStorage->saveToken($tokenKey, json_encode($newToken));
+    if ($tokenData) {
+        $accessToken = json_decode($tokenData, true);
+        
+        if ($accessToken && is_array($accessToken)) {
+            try {
+                $client->setAccessToken($accessToken);
+                
+                // Jika token expired, refresh token
+                if ($client->isAccessTokenExpired()) {
+                    if ($client->getRefreshToken()) {
+                        $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                        if (!isset($newToken['error'])) {
+                            $tokenStorage->saveToken($tokenKey, json_encode($newToken));
+                            $client->setAccessToken($newToken);
+                        }
+                    }
+                }
+                
+                // Jika masih valid atau sudah di-refresh, redirect ke index
+                if (!$client->isAccessTokenExpired()) {
+                    header('Location: index.php');
+                    exit;
+                }
+            } catch (Exception $e) {
+                // Token invalid, continue to show auth page
+                error_log("Token validation error: " . $e->getMessage());
+            }
         }
-    }
-    
-    // Jika masih valid atau sudah di-refresh, redirect ke index
-    if (!$client->isAccessTokenExpired()) {
-        header('Location: index.php');
-        exit;
     }
 }
 
